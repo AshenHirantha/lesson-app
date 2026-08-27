@@ -2,7 +2,10 @@ import { LESSON_SYSTEM_PROMPT, buildLessonUserPrompt, type Lesson } from "@/lib/
 
 // OpenRouter is OpenAI-compatible, so a plain fetch call is enough —
 // no SDK dependency needed for one endpoint. Model is swappable via env var.
-const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL ?? "openrouter/free";
+const OPENROUTER_MODEL =
+  process.env.OPENROUTER_USE_FREE === "true"
+    ? "openrouter/free"
+    : process.env.OPENROUTER_MODEL ?? "openrouter/free";
 // Keep the reservation below the free balance reported by OpenRouter.
 const OPENROUTER_MAX_TOKENS = Number(process.env.OPENROUTER_MAX_TOKENS ?? 2500);
 
@@ -53,8 +56,14 @@ export async function POST(req: Request) {
 
     if (!orRes.ok) {
       const errBody = await orRes.text();
+      let detail = errBody;
+      try {
+        detail = JSON.parse(errBody)?.error?.message ?? errBody;
+      } catch {
+        // Keep non-JSON provider errors readable.
+      }
       return Response.json(
-        { error: `OpenRouter error: ${errBody}` },
+        { error: `OpenRouter error: ${detail}` },
         { status: orRes.status === 402 ? 402 : 502 }
       );
     }

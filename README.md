@@ -12,7 +12,9 @@ client-side from the JSON response.
 
 Model is configurable via `OPENROUTER_MODEL` (defaults to OpenRouter's
 `openrouter/free` router) — swap in any OpenRouter-hosted model without code
-changes. The free router automatically selects a compatible free model.
+changes. Set `OPENROUTER_USE_FREE=true` in Vercel to force free mode even if an
+older `OPENROUTER_MODEL` variable is still configured; the free router
+automatically selects a compatible free model.
 
 `OPENROUTER_MAX_TOKENS` optionally controls the response budget and defaults
 to `2500`, which fits the low-credit OpenRouter limit shown by the API.
@@ -31,7 +33,9 @@ Open http://localhost:3000, drop a code file.
 
 1. Push this repo to GitHub.
 2. Import it in Vercel (New Project → select repo).
-3. Add environment variable `OPENROUTER_API_KEY` (and optionally `OPENROUTER_MODEL`, `SITE_URL`) in Project Settings → Environment Variables.
+3. Add `OPENROUTER_API_KEY` and `OPENROUTER_USE_FREE=true` in Project Settings
+   → Environment Variables. Remove any old paid `OPENROUTER_MODEL` override,
+   or leave it in place because `OPENROUTER_USE_FREE=true` takes precedence.
 4. Deploy. No other config needed — `app/api/lesson/route.ts` runs as a
    serverless function automatically.
 

@@ -46,14 +46,10 @@ no preamble, no trailing commentary:
 }`;
 
 export function buildLessonUserPrompt(filename: string, code: string): string {
-  return `Filename: ${filename}
+  return `Analyze ${filename}. Return only the requested lesson JSON.
 
-File contents:
-\`\`\`
-${code}
-\`\`\`
-
-Produce the lesson JSON now.`;
+SOURCE:
+${code}`;
 }
 
 export type LessonConcept = {

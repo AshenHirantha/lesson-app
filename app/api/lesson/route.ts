@@ -2,7 +2,9 @@ import { LESSON_SYSTEM_PROMPT, buildLessonUserPrompt, type Lesson } from "@/lib/
 
 // OpenRouter is OpenAI-compatible, so a plain fetch call is enough —
 // no SDK dependency needed for one endpoint. Model is swappable via env var.
-const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL ?? "anthropic/claude-sonnet-4.6";
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL ?? "openrouter/free";
+// Keep the reservation below the free balance reported by OpenRouter.
+const OPENROUTER_MAX_TOKENS = Number(process.env.OPENROUTER_MAX_TOKENS ?? 2500);
 
 export const runtime = "nodejs";
 export const maxDuration = 60; // Vercel: allow the single LLM call room to finish
@@ -41,7 +43,7 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         model: OPENROUTER_MODEL,
-        max_tokens: 8000,
+        max_tokens: OPENROUTER_MAX_TOKENS,
         messages: [
           { role: "system", content: LESSON_SYSTEM_PROMPT },
           { role: "user", content: buildLessonUserPrompt(filename, code) },
@@ -51,7 +53,10 @@ export async function POST(req: Request) {
 
     if (!orRes.ok) {
       const errBody = await orRes.text();
-      return Response.json({ error: `OpenRouter error: ${errBody}` }, { status: 502 });
+      return Response.json(
+        { error: `OpenRouter error: ${errBody}` },
+        { status: orRes.status === 402 ? 402 : 502 }
+      );
     }
 
     const data = await orRes.json();

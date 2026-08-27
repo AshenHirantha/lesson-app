@@ -10,9 +10,12 @@ no SDK dependency). No database, no file storage, no auth — everything
 happens in a single request/response cycle. `.md` export is generated
 client-side from the JSON response.
 
-Model is configurable via `OPENROUTER_MODEL` (defaults to
-`anthropic/claude-sonnet-4.6`) — swap in any OpenRouter-hosted model without
-code changes.
+Model is configurable via `OPENROUTER_MODEL` (defaults to OpenRouter's
+`openrouter/free` router) — swap in any OpenRouter-hosted model without code
+changes. The free router automatically selects a compatible free model.
+
+`OPENROUTER_MAX_TOKENS` optionally controls the response budget and defaults
+to `2500`, which fits the low-credit OpenRouter limit shown by the API.
 
 ## Local setup
 

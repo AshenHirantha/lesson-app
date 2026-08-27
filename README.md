@@ -14,12 +14,15 @@ Free models are enabled by default. Set `OPENROUTER_USE_FREE=false` to use the
 model configured by `OPENROUTER_MODEL` instead.
 
 Free mode uses the explicit `:free` models in `OPENROUTER_FREE_MODELS`, in
-priority order. The API tries them concurrently, with a 15-second timeout
+priority order. The API tries them concurrently, with a 45-second timeout
 window, and only fails after all models are unavailable. Override that
 comma-separated list if a model becomes unavailable.
 
 `OPENROUTER_MAX_TOKENS` optionally controls the response budget and defaults
 to `2500`, which fits the low-credit OpenRouter limit shown by the API.
+
+`OPENROUTER_TIMEOUT_MS` controls the provider timeout and defaults to `45000`
+milliseconds for slower free providers.
 
 Uploads are extension-agnostic: any text-based code file is accepted,
 including JavaScript, TypeScript, Python, YAML, JSON, and Markdown. Binary

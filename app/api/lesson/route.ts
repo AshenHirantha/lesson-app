@@ -11,6 +11,7 @@ const FREE_MODELS = (
 const REQUEST_MODELS = USE_FREE_MODELS ? FREE_MODELS : [OPENROUTER_MODEL ?? ""];
 // Keep the reservation below the free balance reported by OpenRouter.
 const OPENROUTER_MAX_TOKENS = Number(process.env.OPENROUTER_MAX_TOKENS ?? 2500);
+const OPENROUTER_TIMEOUT_MS = Number(process.env.OPENROUTER_TIMEOUT_MS ?? 45_000);
 
 export const runtime = "nodejs";
 export const maxDuration = 60; // Vercel: allow the single LLM call room to finish
@@ -43,8 +44,8 @@ export async function POST(req: Request) {
       try {
         const orRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
           method: "POST",
-          // Parallel attempts share one timeout window and fit Vercel's 60s limit.
-          signal: AbortSignal.timeout(15_000),
+          // Free providers can be slow; keep this below Vercel's 60s limit.
+          signal: AbortSignal.timeout(OPENROUTER_TIMEOUT_MS),
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,

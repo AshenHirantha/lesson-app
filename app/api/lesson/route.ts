@@ -6,7 +6,7 @@ const USE_FREE_MODELS = process.env.OPENROUTER_USE_FREE !== "false";
 const OPENROUTER_MODEL = USE_FREE_MODELS ? undefined : process.env.OPENROUTER_MODEL;
 const FREE_MODELS = (
   process.env.OPENROUTER_FREE_MODELS ??
-  "nvidia/nemotron-3.5-content-safety:free, cohere/north-mini-code:free, poolside/laguna-xs-2.1:free"
+  "qwen/qwen3-next-80b-a3b-instruct:free,liquid/lfm-2.5-2.6b:free,dots-studio/dots-3-note-preview:free"
 ).split(",").map((model) => model.trim()).filter(Boolean);
 const REQUEST_MODELS = USE_FREE_MODELS ? FREE_MODELS : [OPENROUTER_MODEL ?? ""];
 // Keep the reservation below the free balance reported by OpenRouter.
@@ -38,7 +38,7 @@ export async function POST(req: Request) {
       return Response.json({ error: "File does not appear to be text." }, { status: 400 });
     }
 
-    let text: string | undefined;
+    let lesson: Lesson | undefined;
     const failures: string[] = [];
     for (const model of REQUEST_MODELS) {
       let orRes: Response;
@@ -80,24 +80,26 @@ export async function POST(req: Request) {
       }
 
       const data = await orRes.json();
-      text = data.choices?.[0]?.message?.content;
-      if (text) break;
-      failures.push(`${model}: no response from model`);
+      const text: unknown = data.choices?.[0]?.message?.content;
+      if (typeof text !== "string" || !text.trim()) {
+        failures.push(`${model}: no text response from model`);
+        continue;
+      }
+
+      const cleaned = text.trim().replace(/^```json\s*|```$/g, "");
+      try {
+        lesson = JSON.parse(cleaned);
+        break;
+      } catch {
+        failures.push(`${model}: invalid JSON response`);
+      }
     }
 
-    if (!text) {
+    if (!lesson) {
       return Response.json(
         { error: `OpenRouter failed for all models: ${failures.join(" | ")}` },
         { status: 502 }
       );
-    }
-
-    const cleaned = text.trim().replace(/^```json\s*|```$/g, "");
-    let lesson: Lesson;
-    try {
-      lesson = JSON.parse(cleaned);
-    } catch {
-      return Response.json({ error: "Model returned invalid JSON." }, { status: 502 });
     }
 
     return Response.json({ lesson, filename });

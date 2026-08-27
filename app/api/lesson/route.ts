@@ -6,7 +6,7 @@ const USE_FREE_MODELS = process.env.OPENROUTER_USE_FREE !== "false";
 const OPENROUTER_MODEL = USE_FREE_MODELS ? undefined : process.env.OPENROUTER_MODEL;
 const FREE_MODELS = (
   process.env.OPENROUTER_FREE_MODELS ??
-  "nvidia/nemotron-3-ultra-550b-a55b:free,thinkingmachines/inkling:free, z-ai/glm-5.2:free"
+  "nvidia/nemotron-3.5-content-safety:free, cohere/north-mini-code:free, poolside/laguna-xs-2.1:free"
 ).split(",").map((model) => model.trim()).filter(Boolean);
 const REQUEST_MODELS = USE_FREE_MODELS ? FREE_MODELS : [OPENROUTER_MODEL ?? ""];
 // Keep the reservation below the free balance reported by OpenRouter.

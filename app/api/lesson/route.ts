@@ -38,15 +38,13 @@ export async function POST(req: Request) {
       return Response.json({ error: "File does not appear to be text." }, { status: 400 });
     }
 
-    let lesson: Lesson | undefined;
-    const failures: string[] = [];
-    for (const model of REQUEST_MODELS) {
-      let orRes: Response;
+    const attempts = await Promise.all(REQUEST_MODELS.map(async (model) => {
+      let failure = "";
       try {
-        orRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        const orRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
           method: "POST",
-          // Three attempts must fit inside Vercel's 60-second function limit.
-          signal: AbortSignal.timeout(12_000),
+          // Parallel attempts share one timeout window and fit Vercel's 60s limit.
+          signal: AbortSignal.timeout(15_000),
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
@@ -63,38 +61,40 @@ export async function POST(req: Request) {
             ],
           }),
         });
-      } catch (err: any) {
-        failures.push(`${model}: ${err?.message ?? "request timed out"}`);
-        continue;
-      }
-
-      if (!orRes.ok) {
-        const errBody = await orRes.text();
-        let detail = errBody;
-        try {
-          detail = JSON.parse(errBody)?.error?.message ?? errBody;
-        } catch {
-          // Keep non-JSON provider errors readable.
+        if (!orRes.ok) {
+          const errBody = await orRes.text();
+          let detail = errBody;
+          try {
+            detail = JSON.parse(errBody)?.error?.message ?? errBody;
+          } catch {
+            // Keep non-JSON provider errors readable.
+          }
+          return { model, lesson: undefined, failure: detail };
         }
-        failures.push(`${model}: ${detail}`);
-        continue;
-      }
 
-      const data = await orRes.json();
-      const text: unknown = data.choices?.[0]?.message?.content;
-      if (typeof text !== "string" || !text.trim()) {
-        failures.push(`${model}: no text response from model`);
-        continue;
+        const text: unknown = (await orRes.json()).choices?.[0]?.message?.content;
+        if (typeof text !== "string" || !text.trim()) {
+          return { model, lesson: undefined, failure: "no text response" };
+        }
+        try {
+          return {
+            model,
+            lesson: JSON.parse(text.trim().replace(/^```json\s*|```$/g, "")) as Lesson,
+            failure: "",
+          };
+        } catch {
+          return { model, lesson: undefined, failure: "invalid JSON response" };
+        }
+      } catch (err: any) {
+        failure = err?.message ?? "request timed out";
       }
+      return { model, lesson: undefined, failure };
+    }));
 
-      const cleaned = text.trim().replace(/^```json\s*|```$/g, "");
-      try {
-        lesson = JSON.parse(cleaned);
-        break;
-      } catch {
-        failures.push(`${model}: invalid JSON response`);
-      }
-    }
+    const lesson = attempts.find((attempt) => attempt.lesson)?.lesson;
+    const failures = attempts
+      .filter((attempt) => attempt.failure)
+      .map((attempt) => `${attempt.model}: ${attempt.failure}`);
 
     if (!lesson) {
       return Response.json(

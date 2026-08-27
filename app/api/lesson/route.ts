@@ -51,11 +51,14 @@ export async function POST(req: Request) {
             Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
             // Optional but recommended by OpenRouter for their leaderboards/rate limiting.
             "HTTP-Referer": process.env.SITE_URL ?? "https://localhost:3000",
-            "X-Title": "Learn From Code",
+            "X-OpenRouter-Title": "Learn From Code",
           },
           body: JSON.stringify({
             model,
             max_tokens: OPENROUTER_MAX_TOKENS,
+            stream: false,
+            response_format: { type: "json_object" },
+            plugins: [{ id: "response-healing" }],
             messages: [
               { role: "system", content: LESSON_SYSTEM_PROMPT },
               { role: "user", content: buildLessonUserPrompt(filename, code) },

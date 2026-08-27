@@ -24,6 +24,9 @@ to `2500`, which fits the low-credit OpenRouter limit shown by the API.
 `OPENROUTER_TIMEOUT_MS` controls the provider timeout and defaults to `45000`
 milliseconds for slower free providers.
 
+The API requests JSON output directly and enables OpenRouter response healing
+to repair common formatting errors before the lesson is parsed.
+
 Uploads are extension-agnostic: any text-based code file is accepted,
 including JavaScript, TypeScript, Python, YAML, JSON, and Markdown. Binary
 files and files containing null bytes are rejected.

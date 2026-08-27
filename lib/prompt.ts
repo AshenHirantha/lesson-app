@@ -72,3 +72,13 @@ export type Lesson = {
   walkthrough: string;
   quiz: LessonQuizQuestion[];
 };
+
+export function isLesson(value: unknown): value is Lesson {
+  if (!value || typeof value !== "object") return false;
+  const lesson = value as Partial<Lesson>;
+  return typeof lesson.language === "string"
+    && typeof lesson.fileSummary === "string"
+    && typeof lesson.walkthrough === "string"
+    && Array.isArray(lesson.concepts)
+    && Array.isArray(lesson.quiz);
+}

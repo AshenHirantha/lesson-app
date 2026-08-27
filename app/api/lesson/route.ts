@@ -1,4 +1,4 @@
-import { LESSON_SYSTEM_PROMPT, buildLessonUserPrompt, type Lesson } from "@/lib/prompt";
+import { LESSON_SYSTEM_PROMPT, buildLessonUserPrompt, isLesson, type Lesson } from "@/lib/prompt";
 
 // OpenRouter is OpenAI-compatible, so a plain fetch call is enough —
 // no SDK dependency needed for one endpoint. Model is swappable via env var.
@@ -101,13 +101,15 @@ export async function POST(req: Request) {
           };
         }
         try {
+          const candidate: unknown = JSON.parse(text.trim().replace(/^```json\s*|```$/g, ""));
+          if (!isLesson(candidate)) throw new Error("invalid lesson shape");
           return {
             model,
-            lesson: JSON.parse(text.trim().replace(/^```json\s*|```$/g, "")) as Lesson,
+            lesson: candidate,
             failure: "",
           };
         } catch {
-          return { model, lesson: undefined, failure: "invalid JSON response" };
+          return { model, lesson: undefined, failure: "invalid lesson JSON or shape" };
         }
       } catch (err: any) {
         failure = err?.message ?? "request timed out";

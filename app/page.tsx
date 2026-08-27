@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import type { Lesson } from "@/lib/prompt";
+import { isLesson, type Lesson } from "@/lib/prompt";
 import { lessonToMarkdown } from "@/lib/markdown";
 import QuizBlock from "@/components/QuizBlock";
 
@@ -25,6 +25,7 @@ export default function Home() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Something went wrong.");
+      if (!isLesson(data.lesson)) throw new Error("The model returned an incomplete lesson.");
       setLesson(data.lesson);
       setFilename(data.filename);
     } catch (e: any) {

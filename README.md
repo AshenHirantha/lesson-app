@@ -10,11 +10,12 @@ no SDK dependency). No database, no file storage, no auth — everything
 happens in a single request/response cycle. `.md` export is generated
 client-side from the JSON response.
 
-Model is configurable via `OPENROUTER_MODEL` (defaults to OpenRouter's
-`openrouter/free` router) — swap in any OpenRouter-hosted model without code
-changes. Set `OPENROUTER_USE_FREE=true` in Vercel to force free mode even if an
-older `OPENROUTER_MODEL` variable is still configured; the free router
-automatically selects a compatible free model.
+Free models are enabled by default. Set `OPENROUTER_USE_FREE=false` to use the
+model configured by `OPENROUTER_MODEL` instead.
+
+Free mode uses the explicit `:free` models in `OPENROUTER_FREE_MODELS`, in
+priority order. Override that comma-separated list if a model becomes
+unavailable.
 
 `OPENROUTER_MAX_TOKENS` optionally controls the response budget and defaults
 to `2500`, which fits the low-credit OpenRouter limit shown by the API.
@@ -33,9 +34,8 @@ Open http://localhost:3000, drop a code file.
 
 1. Push this repo to GitHub.
 2. Import it in Vercel (New Project → select repo).
-3. Add `OPENROUTER_API_KEY` and `OPENROUTER_USE_FREE=true` in Project Settings
-   → Environment Variables. Remove any old paid `OPENROUTER_MODEL` override,
-   or leave it in place because `OPENROUTER_USE_FREE=true` takes precedence.
+3. Add `OPENROUTER_API_KEY` in Project Settings → Environment Variables.
+   Free mode is the default, and ignores any old `OPENROUTER_MODEL` override.
 4. Deploy. No other config needed — `app/api/lesson/route.ts` runs as a
    serverless function automatically.
 

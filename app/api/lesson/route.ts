@@ -2,10 +2,12 @@ import { LESSON_SYSTEM_PROMPT, buildLessonUserPrompt, type Lesson } from "@/lib/
 
 // OpenRouter is OpenAI-compatible, so a plain fetch call is enough —
 // no SDK dependency needed for one endpoint. Model is swappable via env var.
-const OPENROUTER_MODEL =
-  process.env.OPENROUTER_USE_FREE === "true"
-    ? "openrouter/free"
-    : process.env.OPENROUTER_MODEL ?? "openrouter/free";
+const USE_FREE_MODELS = process.env.OPENROUTER_USE_FREE !== "false";
+const OPENROUTER_MODEL = USE_FREE_MODELS ? undefined : process.env.OPENROUTER_MODEL;
+const FREE_MODELS = (
+  process.env.OPENROUTER_FREE_MODELS ??
+  "qwen/qwen3-next-80b-a3b-instruct:free,meta-llama/llama-3.3-70b-instruct:free,meta-llama/llama-3.2-3b-instruct:free"
+).split(",").map((model) => model.trim()).filter(Boolean);
 // Keep the reservation below the free balance reported by OpenRouter.
 const OPENROUTER_MAX_TOKENS = Number(process.env.OPENROUTER_MAX_TOKENS ?? 2500);
 
@@ -45,7 +47,7 @@ export async function POST(req: Request) {
         "X-Title": "Learn From Code",
       },
       body: JSON.stringify({
-        model: OPENROUTER_MODEL,
+        ...(OPENROUTER_MODEL ? { model: OPENROUTER_MODEL } : { models: FREE_MODELS }),
         max_tokens: OPENROUTER_MAX_TOKENS,
         messages: [
           { role: "system", content: LESSON_SYSTEM_PROMPT },

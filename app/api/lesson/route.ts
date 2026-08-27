@@ -6,7 +6,7 @@ const USE_FREE_MODELS = process.env.OPENROUTER_USE_FREE !== "false";
 const OPENROUTER_MODEL = USE_FREE_MODELS ? undefined : process.env.OPENROUTER_MODEL;
 const FREE_MODELS = (
   process.env.OPENROUTER_FREE_MODELS ??
-  "qwen/qwen3-next-80b-a3b-instruct:free,liquid/lfm-2.5-2.6b:free,dots-studio/dots-3-note-preview:free"
+  "openrouter/free"
 ).split(",").map((model) => model.trim()).filter(Boolean);
 const REQUEST_MODELS = USE_FREE_MODELS ? FREE_MODELS : [OPENROUTER_MODEL ?? ""];
 // Keep the reservation below the free balance reported by OpenRouter.

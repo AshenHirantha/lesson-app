@@ -21,6 +21,10 @@ comma-separated list if a model becomes unavailable.
 `OPENROUTER_MAX_TOKENS` optionally controls the response budget and defaults
 to `2500`, which fits the low-credit OpenRouter limit shown by the API.
 
+Uploads are extension-agnostic: any text-based code file is accepted,
+including JavaScript, TypeScript, Python, YAML, JSON, and Markdown. Binary
+files and files containing null bytes are rejected.
+
 ## Local setup
 
 ```bash

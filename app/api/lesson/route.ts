@@ -8,6 +8,7 @@ const FREE_MODELS = (
   process.env.OPENROUTER_FREE_MODELS ??
   "nvidia/nemotron-3-ultra-550b-a55b:free,thinkingmachines/inkling:free, z-ai/glm-5.2:free"
 ).split(",").map((model) => model.trim()).filter(Boolean);
+const REQUEST_MODELS = USE_FREE_MODELS ? FREE_MODELS : [OPENROUTER_MODEL ?? ""];
 // Keep the reservation below the free balance reported by OpenRouter.
 const OPENROUTER_MAX_TOKENS = Number(process.env.OPENROUTER_MAX_TOKENS ?? 2500);
 
@@ -37,43 +38,58 @@ export async function POST(req: Request) {
       return Response.json({ error: "File does not appear to be text." }, { status: 400 });
     }
 
-    const orRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        // Optional but recommended by OpenRouter for their leaderboards/rate limiting.
-        "HTTP-Referer": process.env.SITE_URL ?? "https://localhost:3000",
-        "X-Title": "Learn From Code",
-      },
-      body: JSON.stringify({
-        ...(OPENROUTER_MODEL ? { model: OPENROUTER_MODEL } : { models: FREE_MODELS }),
-        max_tokens: OPENROUTER_MAX_TOKENS,
-        messages: [
-          { role: "system", content: LESSON_SYSTEM_PROMPT },
-          { role: "user", content: buildLessonUserPrompt(filename, code) },
-        ],
-      }),
-    });
-
-    if (!orRes.ok) {
-      const errBody = await orRes.text();
-      let detail = errBody;
+    let text: string | undefined;
+    const failures: string[] = [];
+    for (const model of REQUEST_MODELS) {
+      let orRes: Response;
       try {
-        detail = JSON.parse(errBody)?.error?.message ?? errBody;
-      } catch {
-        // Keep non-JSON provider errors readable.
+        orRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          signal: AbortSignal.timeout(18_000),
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+            // Optional but recommended by OpenRouter for their leaderboards/rate limiting.
+            "HTTP-Referer": process.env.SITE_URL ?? "https://localhost:3000",
+            "X-Title": "Learn From Code",
+          },
+          body: JSON.stringify({
+            model,
+            max_tokens: OPENROUTER_MAX_TOKENS,
+            messages: [
+              { role: "system", content: LESSON_SYSTEM_PROMPT },
+              { role: "user", content: buildLessonUserPrompt(filename, code) },
+            ],
+          }),
+        });
+      } catch (err: any) {
+        failures.push(`${model}: ${err?.message ?? "request timed out"}`);
+        continue;
       }
-      return Response.json(
-        { error: `OpenRouter error: ${detail}` },
-        { status: orRes.status === 402 ? 402 : 502 }
-      );
+
+      if (!orRes.ok) {
+        const errBody = await orRes.text();
+        let detail = errBody;
+        try {
+          detail = JSON.parse(errBody)?.error?.message ?? errBody;
+        } catch {
+          // Keep non-JSON provider errors readable.
+        }
+        failures.push(`${model}: ${detail}`);
+        continue;
+      }
+
+      const data = await orRes.json();
+      text = data.choices?.[0]?.message?.content;
+      if (text) break;
+      failures.push(`${model}: no response from model`);
     }
 
-    const data = await orRes.json();
-    const text: string | undefined = data.choices?.[0]?.message?.content;
     if (!text) {
-      return Response.json({ error: "No response from model." }, { status: 502 });
+      return Response.json(
+        { error: `OpenRouter failed for all models: ${failures.join(" | ")}` },
+        { status: 502 }
+      );
     }
 
     const cleaned = text.trim().replace(/^```json\s*|```$/g, "");

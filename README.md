@@ -14,7 +14,7 @@ Free models are enabled by default. Set `OPENROUTER_USE_FREE=false` to use the
 model configured by `OPENROUTER_MODEL` instead.
 
 Free mode uses the explicit `:free` models in `OPENROUTER_FREE_MODELS`, in
-priority order. The API tries them sequentially, with an 18-second timeout
+priority order. The API tries them sequentially, with a 12-second timeout
 per model, and only fails after all models are unavailable. Override that
 comma-separated list if a model becomes unavailable.
 

@@ -45,7 +45,8 @@ export async function POST(req: Request) {
       try {
         orRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
           method: "POST",
-          signal: AbortSignal.timeout(18_000),
+          // Three attempts must fit inside Vercel's 60-second function limit.
+          signal: AbortSignal.timeout(12_000),
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,

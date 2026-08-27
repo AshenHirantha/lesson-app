@@ -2,12 +2,21 @@ import { LESSON_SYSTEM_PROMPT, buildLessonUserPrompt, type Lesson } from "@/lib/
 
 // OpenRouter is OpenAI-compatible, so a plain fetch call is enough —
 // no SDK dependency needed for one endpoint. Model is swappable via env var.
-const USE_FREE_MODELS = process.env.OPENROUTER_USE_FREE !== "false";
-const OPENROUTER_MODEL = USE_FREE_MODELS ? undefined : process.env.OPENROUTER_MODEL;
+const CONFIGURED_MODEL = process.env.OPENROUTER_MODEL;
+const USE_FREE_MODELS =
+  process.env.OPENROUTER_USE_FREE !== "false" || CONFIGURED_MODEL === "openrouter/free";
+const OPENROUTER_MODEL = USE_FREE_MODELS ? undefined : CONFIGURED_MODEL;
+const DEFAULT_FREE_MODELS = [
+  "poolside/laguna-xs-2.1:free",
+  "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+  "nvidia/nemotron-3-super-120b-a12b:free",
+];
 const FREE_MODELS = (
   process.env.OPENROUTER_FREE_MODELS ??
-  "openrouter/free"
-).split(",").map((model) => model.trim()).filter(Boolean);
+  DEFAULT_FREE_MODELS.join(",")
+).split(",").map((model) => model.trim()).filter(Boolean).flatMap((model) =>
+  model === "openrouter/free" ? DEFAULT_FREE_MODELS : [model]
+);
 const REQUEST_MODELS = USE_FREE_MODELS ? FREE_MODELS : [OPENROUTER_MODEL ?? ""];
 // Keep the reservation below the free balance reported by OpenRouter.
 const OPENROUTER_MAX_TOKENS = Number(process.env.OPENROUTER_MAX_TOKENS ?? 2500);
@@ -76,9 +85,20 @@ export async function POST(req: Request) {
           return { model, lesson: undefined, failure: detail };
         }
 
-        const text: unknown = (await orRes.json()).choices?.[0]?.message?.content;
+        const data = await orRes.json();
+        const message = data.choices?.[0]?.message;
+        const content = message?.content;
+        const text = typeof content === "string"
+          ? content
+          : Array.isArray(content)
+            ? content.map((part: any) => typeof part === "string" ? part : part?.text ?? "").join("")
+            : typeof data.choices?.[0]?.text === "string" ? data.choices[0].text : undefined;
         if (typeof text !== "string" || !text.trim()) {
-          return { model, lesson: undefined, failure: "no text response" };
+          return {
+            model,
+            lesson: undefined,
+            failure: `no text response (finish_reason: ${data.choices?.[0]?.finish_reason ?? "unknown"})`,
+          };
         }
         try {
           return {

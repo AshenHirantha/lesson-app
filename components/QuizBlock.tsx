@@ -8,7 +8,7 @@ export default function QuizBlock({ q, index }: { q: LessonQuizQuestion; index: 
 
   return (
     <div className="quiz-q">
-      <p><strong>Q{index + 1}.</strong> {q.question}</p>
+      <p><strong>Q{String(index + 1).padStart(2, "0")} //</strong> {q.question}</p>
       {q.options.map((opt, i) => {
         let cls = "option";
         if (picked !== null) {

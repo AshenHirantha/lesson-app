@@ -1,8 +1,8 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Learn From Code",
-  description: "Drop a code file, get a tailored lesson.",
+  title: "CODE_TERMINAL // The Focused Studio",
+  description: "Drop a code file and get a tailored lesson.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
